@@ -1,109 +1,69 @@
 import "./App.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Line from "./Line";
 
 function App() {
-  const [windowHeight, setWindowHeight] = useState();
-  const [windowWidth, setWindowWidth] = useState();
+  // using useRef to persist values between renders
+  const windowHeight = useRef(window.innerHeight);
+  const windowWidth = useRef(window.innerWidth);
 
-  const [randomPoints, setRandomPoints] = useState({
-    x1: undefined,
-    y1: undefined,
-    x2: undefined,
-    y2: undefined,
-    x3: undefined,
-    y3: undefined,
-    x4: undefined,
-    y4: undefined,
-  });
+  const [randomPoints, setRandomPoints] = useState([]);
+  const [cursorOffset, setCursorOffset] = useState({ x: 0, y: 0 });
 
-  const [mouseMovement, setMouseMovement] = useState({
-    x: undefined,
-    y: undefined,
-  });
-
-  const mouseCallback = (res) => {
-    setMouseMovement({ x: res.pageX, y: res.pageY });
-  };
-
+  // Generates a random integer up to the provided maximum value.
   function getRandomInteger(max) {
     return Math.floor(Math.random() * max);
   }
 
-  const Line = () => {
-    return (
-      <svg width="100%" height="100vh">
-        <line
-          x1={mouseMovement.x}
-          y1={mouseMovement.y}
-          x2={randomPoints.x1}
-          y2={randomPoints.y1}
-          stroke="black"
-          strokeWidth="2"
-        />
-        <line
-          x1={mouseMovement.x}
-          y1={mouseMovement.y}
-          x2={randomPoints.x2}
-          y2={randomPoints.y2}
-          stroke="black"
-          strokeWidth="2"
-        />
-        <line
-          x1={mouseMovement.x}
-          y1={mouseMovement.y}
-          x2={randomPoints.x3}
-          y2={randomPoints.y3}
-          stroke="black"
-          strokeWidth="2"
-        />
-        <line
-          x1={mouseMovement.x}
-          y1={mouseMovement.y}
-          x2={randomPoints.x4}
-          y2={randomPoints.y4}
-          stroke="black"
-          strokeWidth="2"
-        />
-      </svg>
-    );
+  /**
+   * Generates new random points within the window dimensions
+   * and updates the state with these points.
+   */
+  const generateRandomPoints = () => {
+    const points = [];
+    for (let i = 0; i < 4; i++) {
+      // get random offsets within the window dimensions
+      const xOffset = getRandomInteger(windowWidth.current);
+      const yOffset = getRandomInteger(windowHeight.current);
+      points.push({ xOffset, yOffset });
+    }
+    setRandomPoints(points);
   };
 
-  const timerCallback = () => {
-    const randIntX1 = getRandomInteger(windowWidth);
-    const randIntY1 = getRandomInteger(windowHeight);
-    const randIntX2 = getRandomInteger(windowWidth);
-    const randIntY2 = getRandomInteger(windowHeight);
-    const randIntX3 = getRandomInteger(windowWidth);
-    const randIntY3 = getRandomInteger(windowHeight);
-    const randIntX4 = getRandomInteger(windowWidth);
-    const randIntY4 = getRandomInteger(windowHeight);
-    console.log("Timer updated");
-    setRandomPoints({
-      x1: randIntX1,
-      y1: randIntY1,
-      x2: randIntX2,
-      y2: randIntY2,
-      x3: randIntX3,
-      y3: randIntY3,
-      x4: randIntX4,
-      y4: randIntY4,
-    });
+  // Updates the cursor position state based on mouse movement.
+  const handleMouseMove = (event) => {
+    setCursorOffset({ x: event.pageX, y: event.pageY });
   };
 
   useEffect(() => {
-    window.addEventListener("mousemove", mouseCallback);
-    setWindowHeight(window.innerHeight);
-    setWindowWidth(window.innerWidth);
-    const interval = setInterval(timerCallback, 1000);
+    // Set up event listener for mouse movement
+    window.addEventListener("mousemove", handleMouseMove);
+
+    // Start interval for generating random points every 2 seconds
+    const interval = setInterval(generateRandomPoints, 2000);
+
     return () => {
-      window.removeEventListener("mousemove", () => {});
+      // Clean up event listener and interval on component unmount
+      window.removeEventListener("mousemove", handleMouseMove);
       clearInterval(interval);
     };
   }, []);
 
   return (
-    <div style={{ position: "abolute", height: "100vh" }}>
-      <Line />
+    <div>
+      {cursorOffset.x && (
+        <svg width="100%" height="100vh">
+          {randomPoints.map((point, index) => (
+            <Line
+              key={index} // Add a key for each line
+              x1={cursorOffset?.x}
+              y1={cursorOffset?.y}
+              x2={point.xOffset}
+              y2={point.yOffset}
+            />
+          ))}
+        </svg>
+      )}
     </div>
   );
 }
